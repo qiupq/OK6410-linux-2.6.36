@@ -70,6 +70,54 @@
 #include <plat/ts.h>
 #include <plat/keypad.h>
 
+#include <plat/nand.h>
+#include <linux/mtd/partitions.h>
+#include <mtd/mtd-abi.h>
+#include <asm/mach/flash.h>
+
+struct mtd_partition s3c_partition_info[] = {      
+	{         
+	.name          = "Bootloader",
+	.offset               = 0,   
+	.size          = (256*SZ_1K),    
+	.mask_flags    =MTD_CAP_NANDFLASH,  
+	},   
+	{        
+	.name          = "Kernel",   
+	.offset               = (256*SZ_1K),     
+	.size          = (4*SZ_1M) - (256*SZ_1K),    
+	.mask_flags    = MTD_CAP_NANDFLASH,     
+	},
+	#if defined      (CONFIG_SPLIT_ROOT_FILESYSTEM)
+	{           
+	.name          = "Rootfs", 
+	.offset               = (4*SZ_1M),   
+	 .size          = (80*SZ_1M),//
+	},
+	#endif        
+	{          
+	  .name          = "File System",
+	  .offset               = MTDPART_OFS_APPEND,  
+	.size          = MTDPART_SIZ_FULL,   
+	}
+};
+
+static struct s3c2410_nand_set s3c_nandset[]={  
+       [0]=         {        
+                   .name            ="s3c24xx-nand",    
+                  .nr_chips        = 1,  
+                    .nr_partitions   =ARRAY_SIZE(s3c_partition_info),        
+                 .partitions   =s3c_partition_info, 
+                    }
+};
+
+static struct s3c2410_platform_nand s3c_platform={     
+              .tacls =25,           
+            .twrph0 =55,        
+            .sets = &s3c_nandset,      
+             .nr_sets =ARRAY_SIZE(s3c_nandset),
+};
+
 #define UCON S3C2410_UCON_DEFAULT | S3C2410_UCON_UCLK
 #define ULCON S3C2410_LCON_CS8 | S3C2410_LCON_PNONE | S3C2410_LCON_STOPB
 #define UFCON S3C2410_UFCON_RXTRIG8 | S3C2410_UFCON_FIFOMODE
@@ -284,6 +332,7 @@ static struct platform_device *smdk6410_devices[] __initdata = {
 	&s3c_device_ohci,
 	&s3c_device_usb_hsotg,
 	&s3c64xx_device_iisv4,
+	&s3c_device_nand,
 	&samsung_device_keypad,
 
 #ifdef CONFIG_REGULATOR
@@ -641,6 +690,8 @@ static void __init smdk6410_map_io(void)
 {
 	u32 tmp;
 
+	s3c_device_nand.name="s3c6410-nand";
+
 	s3c64xx_init_io(smdk6410_iodesc, ARRAY_SIZE(smdk6410_iodesc));
 	s3c24xx_init_clocks(12000000);
 	s3c24xx_init_uarts(smdk6410_uartcfgs, ARRAY_SIZE(smdk6410_uartcfgs));
@@ -665,6 +716,8 @@ static void __init smdk6410_machine_init(void)
 	s3c_i2c0_set_platdata(NULL);
 	s3c_i2c1_set_platdata(NULL);
 	s3c_fb_set_platdata(&smdk6410_lcd_pdata);
+
+	s3c_nand_set_platdata(&s3c_platform);
 
 	samsung_keypad_set_platdata(&smdk6410_keypad_data);
 

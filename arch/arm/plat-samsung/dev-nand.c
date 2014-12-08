@@ -20,7 +20,7 @@
 static struct resource s3c_nand_resource[] = {
 	[0] = {
 		.start = S3C_PA_NAND,
-		.end   = S3C_PA_NAND + SZ_1M,
+		.end   = S3C_PA_NAND + SZ_1M-1,
 		.flags = IORESOURCE_MEM,
 	}
 };
